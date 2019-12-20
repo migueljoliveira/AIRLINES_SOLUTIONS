@@ -1,0 +1,54 @@
+A-Find list of airports operating in Country India
+hadoop jar /home/edureka/Desktop/AirlinesSolution.jar in.edureka.airlines.IndiaOperatingAirports  airports_mod.dat  outIndiaOperatingAirports
+result_file: outIndiaOperatingAirports_part-r-00000
+
+B- FInd the listof airlines having zero stops
+hadoop jar /home/edureka/Desktop/AirlinesSolution.jar in.edureka.airlines.ZeroStopsAirlinesRJ routes airlines  outZeroStopsAirlines
+result_file: outZeroStopsAirlines_part-r-00000
+
+C- List of airlines operating with CodeShare
+
+FOR THIS I DID THE FOLLOWING PIG CODE with i executed in grunt shell
+
+
+airlines = LOAD '/home/edureka/Desktop/Final_airlines' using PigStorage(',') as (id: int, name: chararray,  alias:chararray, iata:chararray, icao: chararray, callsign:chararray, country:chararray);
+routes = LOAD '/home/edureka/Desktop/routes.dat' using  PigStorage(',') as (airline: chararray, airline_id: int,  source_airport:chararray, source_airport_id:int, destination_airport:chararray, destination_airport_id: int,
+codeshare:chararray, stops:chararray, equipment:chararray);
+filtered = FILTER routes BY codeshare=='Y';
+joined= JOIN filtered BY airline_id, airlines BY id;
+by_airline_name =  GROUP joined by name;
+names_repeated = FOREACH by_airline_name GENERATE joined.name;
+flattened = FOREACH by_airline_name GENERATE FLATTEN(joined.name);
+tupled = DISTINCT flattened;
+ordered = ORDER tupled by name;
+STORE ordered INTO 'codeshare_airlines';
+
+
+result file:
+part-r-00000_codeshare
+
+
+D- Wich country or territory having highest airports:
+
+I had difficulty understanding the problem as is formulated.
+
+So my interpretation is which country has the biggest sum of airports altitude (highest), which is United States
+
+
+In my jar i have a map reduce class for that (HighestAirportsCountryPartitioner). 
+But i like the following PIG Code better:
+
+airports = LOAD '/home/edureka/Desktop/airports_mod.dat' using PigStorage(',') as
+(id: int, name: chararray,  city:chararray, country:chararray, faa: chararray, iata:chararray, latitude:chararray, longitude:chararray, altitude:int,  timezone:chararray, dst:chararray, tz:chararray);
+byname = GROUP airports by country;
+sum = FOREACH byname generate  group, SUM(airports.altitude) ;	
+sorted = ORDER sum by $1 DESC;
+highest_airports_country = LIMIT sorted 1;
+dump highest_airports_country;
+STORE highest_airports_country INTO 'highest_airports_country';
+
+
+result file: 
+part-r-00000_highestAirports
+
+
